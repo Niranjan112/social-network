@@ -1,9 +1,9 @@
 import React, { Component } from 'react';
 import Web3 from 'web3';
-import logo from '../logo.png';
 import './App.css';
-import SocialNetwork from '../abis/SocialNetwork.json'
-import Navbar from './Navbar'
+import SocialNetwork from '../abis/SocialNetwork.json';
+import Navbar from './Navbar';
+import Main from './Main';
 
 class App extends Component {
 
@@ -45,10 +45,29 @@ class App extends Component {
           posts: [...this.state.posts, post]
         })
       }
-      console.log({posts: this.state.posts})
+      this.setState({
+        posts: this.state.posts.sort((a,b) => b.tipAmount - a.tipAmount )
+      })
+      this.setState({ loading: false })
     } else {
       window.alert('Social Network is on another network')
     }
+  }
+
+  createPost(content) {
+    this.setState({ loading: true })
+    this.state.socialNetwork.methods.createPost(content).send({ from: this.state.account })
+    .once('receipt', (receipt) => {
+      this.setState({ loading: false })
+    })
+  }
+
+  tipPost(id, tipAmount) {
+    this.setState({ loading: true })
+    this.state.socialNetwork.methods.tipPost(id).send({ from: this.state.account, value: tipAmount})
+    .once('receipt', (receipt) => {
+      this.setState({ loading: false })
+    })
   }
 
   constructor(props) {
@@ -57,39 +76,27 @@ class App extends Component {
       account: '',
       socialNetwork: null,
       postCount: 0,
-      posts: []
+      posts: [],
+      loading: true
     }
+
+    this.createPost = this.createPost.bind(this)
+    this.tipPost = this.tipPost.bind(this)
   }
 
   render() {
     return (
       <div>
         <Navbar account={this.state.account}/>
-        <div className="container-fluid mt-5">
-          <div className="row">
-            <main role="main" className="col-lg-12 ml-auto mr-auto" style={{ maxWidth: '500px'}}>
-              <div className="content mr-auto ml-auto">
-                {this.state.posts.map((post,key) => {
-                  return(
-                    <div className="card mb-4" key={key}>
-                      <div className="card-header">
-                        <small className="text-muted">Post header</small>
-                      </div>
-                      <ul id="postList" className="list-group list-group-flush">
-                        <li className="list-group-item">
-                          <p>Post Body</p>
-                        </li>
-                        <li key={key} className="list-group-item py-2">
-                          <p>Post Footer</p>
-                        </li>
-                      </ul>
-                    </div>
-                  )
-                })}
-              </div>
-            </main>
-          </div>
-        </div>
+        {
+          this.state.loading
+          ? <div id="loader" className="text-center mt-5"><p>Loading...</p></div>
+          : <Main 
+              posts={this.state.posts}
+              createPost={this.createPost}
+              tipPost={this.tipPost}
+            />
+        }
       </div>
     );
   }
